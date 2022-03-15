@@ -1,7 +1,7 @@
 pipeline {
  agent any
  environment {
- mvn = '/usr/bin/mvn'
+ mvn = '/usr/share/maven'
  }
  stages {
    stage('Get Current Branch') {
@@ -14,23 +14,9 @@ pipeline {
         sh 'mvn test'
      }
    }
-   stage('Maven Clean Install') {
-    when {
-		anyOf {
-			branch 'feature'; branch 'develop'; branch 'main'
-		}
-    } 	
-    steps {
-       sh 'mvn clean install'
-    }
-   }
    stage('Build and push Docker Image') {
-	when {
-		anyOf {
-			branch 'develop'; branch 'main'
-	   }
-    }
     steps {
+	    withAWS(region: 'us-east-1') {
             sh '''
 			 #!/bin/bash
 			 IMAGE="dev-promotion-assessment"
@@ -43,16 +29,14 @@ pipeline {
 			 docker images
 			 docker tag ${IMAGE}:${TAG} ${ECR_LOGINSERVER}/${IMAGE}:${TAG}
 			 docker push ${ECR_LOGINSERVER}/${IMAGE}:${TAG}
-			 ''' 	
+			 ''' 
+	    }
+			sh 'ls -lrt'
      }
    }
    stage('Deploy on EKS cluster') {
-	when {
-		anyOf {
-			branch 'develop'; branch 'master'
-	   }
-    }
      steps {
+	withAWS(region: 'us-east-1') {     
             sh '''
             #!/bin/bash
             NOW=`date +"%Y%m%d"`
@@ -63,9 +47,11 @@ pipeline {
 			RELEASE="hello-world"
 			IMAGE="dev-promotion-assessment"
 			NAMESPACE="default"
-            aws eks --region us-east-1 update-kubeconfig --name Terraform-EKS-Cluster
+            aws eks --region us-east-1 update-kubeconfig --name eks-cluster
             $helm_path/helm upgrade --install hello-world hello-world --set image.tag=$TAG
             '''
+	}
+		sh 'ls -lrt'
      }
    }
  }
