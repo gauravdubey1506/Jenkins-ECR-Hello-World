@@ -16,7 +16,7 @@ pipeline {
    }
    stage('Build and push Docker Image') {
     steps {
-	    withAWS(region: 'us-east-1') {
+	    withAWS(credentials: '348dc31c-3c36-4e9a-84e1-8a3ad437b866', region: 'us-east-1') {
             sh '''
 			 #!/bin/bash
 			 IMAGE="dev-promotion-assessment"
@@ -36,7 +36,7 @@ pipeline {
    }
    stage('Deploy on EKS cluster') {
      steps {
-	withAWS(region: 'us-east-1') {     
+	withAWS(credentials: '348dc31c-3c36-4e9a-84e1-8a3ad437b866', region: 'us-east-1') {     
             sh '''
             #!/bin/bash
             NOW=`date +"%Y%m%d"`
